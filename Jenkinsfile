@@ -32,8 +32,8 @@ pipeline {
                  * Muestra versiones disponibles dentro del agente Jenkins.
                  * Esto ayuda a diagnosticar errores de Java o Maven.
                  */
-                bat 'java -version'
-                bat 'mvn -version'
+                sh 'java -version'
+                sh 'mvn -version'
             }
         }
 
@@ -43,7 +43,7 @@ pipeline {
                  * Compila el proyecto sin ejecutar pruebas.
                  * Esto permite separar claramente la etapa de build de la etapa de testing.
                  */
-                bat 'mvn clean compile'
+                sh 'mvn clean compile'
             }
         }
 
@@ -53,7 +53,7 @@ pipeline {
                  * Ejecuta las pruebas unitarias.
                  * Por ahora Maven ejecutará todos los tests que coincidan con el patrón *Test.
                  */
-                bat 'mvn test'
+                sh 'mvn test'
             }
             post {
                 always {
@@ -72,7 +72,7 @@ pipeline {
                  * Ejecuta verify, fase de Maven comúnmente usada para validar el proyecto completo.
                  * En este proyecto, las pruebas de integración están implementadas con Spring Boot Test.
                  */
-                bat 'mvn verify'
+                sh 'mvn verify'
             }
             post {
                 always {
@@ -84,11 +84,11 @@ pipeline {
         stage('Generar evidencia') {
             steps {
                 /*
-                 * Crea una carpeta de evidencia dentro del workspace de Jenkins.
-                 * Copia reportes de pruebas generados por Maven.
+                 * Crea una carpeta de evidencia y copia los reportes de pruebas.
                  */
-                bat 'if not exist evidencia mkdir evidencia'
-                bat 'xcopy /E /I /Y target\\surefire-reports evidencia\\surefire-reports'
+                sh 'mkdir -p evidencia'
+                sh 'cp -r target/surefire-reports evidencia/ || true'
+                sh 'ls -R evidencia || true'
             }
         }
     }
