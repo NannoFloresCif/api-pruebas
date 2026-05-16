@@ -20,3 +20,28 @@ El proyecto utiliza Trunk-Based Development simplificado.
 ### Justificación
 
 Se utiliza Trunk-Based evita complejidad innecesaria y permite mantener una rama principal estable, integrando cambios pequeños mediante ramas cortas.
+
+---
+
+## Descripción
+
+Se agrega Jenkinsfile para automatizar el pipeline de integración continua del proyecto.
+
+## Stages incluidos
+
+- Checkout del repositorio.
+- Verificación de entorno.
+- Build del proyecto.
+- Pruebas unitarias.
+- Pruebas de integración.
+- Generación de evidencia.
+
+## Validaciones locales
+
+- Se ejecutó `mvn clean verify`.
+- El proyecto compila correctamente.
+- Las pruebas unitarias e integración finalizan exitosamente.
+
+## Evidencia
+
+El pipeline queda definido como código y versionado en el repositorio.
