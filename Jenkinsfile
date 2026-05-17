@@ -1,15 +1,10 @@
 pipeline {
-    /*
-     * Jenkins se ejecuta dentro de un contenedor Linux.
-     * Por eso se usan comandos sh.
-     *
-     * Además, el contenedor Jenkins no tiene Maven instalado globalmente,
-     * por lo tanto usamos Maven Wrapper: ./mvnw
-     */
     agent any
 
     environment {
         NOMBRE_PROYECTO = 'api-pruebas'
+        VERSION_APP = '1.0.0'
+        VERSION_ROLLBACK = '1.0.0'
     }
 
     stages {
@@ -22,20 +17,12 @@ pipeline {
 
         stage('Preparar Maven Wrapper') {
             steps {
-                /*
-                 * En Linux, el archivo mvnw necesita permiso de ejecución.
-                 * chmod +x permite ejecutar el wrapper con ./mvnw
-                 */
                 sh 'chmod +x mvnw'
             }
         }
 
         stage('Verificar entorno') {
             steps {
-                /*
-                 * Verifica Java dentro del contenedor Jenkins.
-                 * Luego verifica Maven usando el wrapper del proyecto.
-                 */
                 sh 'java -version'
                 sh './mvnw -version'
             }
@@ -43,25 +30,16 @@ pipeline {
 
         stage('Build del proyecto') {
             steps {
-                /*
-                 * Compila el proyecto sin ejecutar pruebas.
-                 */
                 sh './mvnw clean compile'
             }
         }
 
         stage('Pruebas unitarias') {
             steps {
-                /*
-                 * Ejecuta pruebas unitarias con JUnit.
-                 */
                 sh './mvnw test'
             }
             post {
                 always {
-                    /*
-                     * Publica resultados de pruebas en Jenkins.
-                     */
                     junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
                 }
             }
@@ -69,11 +47,6 @@ pipeline {
 
         stage('Pruebas de integracion') {
             steps {
-                /*
-                 * Ejecuta la fase verify de Maven.
-                 * En este proyecto valida también las pruebas de integración
-                 * implementadas con Spring Boot Test.
-                 */
                 sh './mvnw verify'
             }
             post {
@@ -83,13 +56,45 @@ pipeline {
             }
         }
 
-        stage('Generar evidencia') {
+        stage('Acceptance tests') {
             steps {
                 /*
-                 * Crea carpeta de evidencia y copia reportes Surefire.
+                 * En esta etapa se valida que los endpoints principales estén cubiertos
+                 * por pruebas de integración antes de construir la imagen Docker.
                  */
+                sh './mvnw verify'
+            }
+        }
+
+        stage('Construir imagen Docker') {
+            steps {
+                sh 'docker build -t ${NOMBRE_PROYECTO}:${VERSION_APP} .'
+                sh 'docker images ${NOMBRE_PROYECTO}'
+            }
+        }
+
+        stage('Desplegar en ambiente de pruebas') {
+            steps {
+                sh 'chmod +x scripts/desplegar.sh'
+                sh './scripts/desplegar.sh ${VERSION_APP}'
+            }
+        }
+
+        stage('Verificar despliegue') {
+            steps {
+                sh 'curl -f http://localhost:8080/salud'
+                sh 'curl -f http://localhost:8080/api/version'
+            }
+        }
+
+        stage('Generar evidencia') {
+            steps {
                 sh 'mkdir -p evidencia'
                 sh 'cp -r target/surefire-reports evidencia/ || true'
+                sh 'docker ps > evidencia/docker-ps.txt'
+                sh 'docker images ${NOMBRE_PROYECTO} > evidencia/docker-images.txt'
+                sh 'curl -s http://localhost:8080/salud > evidencia/endpoint-salud.txt'
+                sh 'curl -s http://localhost:8080/api/version > evidencia/endpoint-version.txt'
                 sh 'ls -R evidencia || true'
             }
         }
@@ -97,17 +102,19 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline ejecutado correctamente. Build, pruebas unitarias e integracion finalizadas con exito.'
+            echo 'Deployment pipeline ejecutado correctamente.'
             archiveArtifacts artifacts: 'evidencia/**', allowEmptyArchive: true
         }
 
         failure {
-            echo 'Pipeline fallo. Revisar logs de Jenkins para identificar la etapa con error.'
-            archiveArtifacts artifacts: 'target/surefire-reports/**', allowEmptyArchive: true
+            echo 'El pipeline fallo. Se intentara rollback a la version estable.'
+            sh 'chmod +x scripts/rollback.sh || true'
+            sh './scripts/rollback.sh ${VERSION_ROLLBACK} || true'
+            archiveArtifacts artifacts: 'target/surefire-reports/**, evidencia/**', allowEmptyArchive: true
         }
 
         always {
-            echo 'Fin de ejecucion del pipeline CI.'
+            echo 'Fin de ejecucion del deployment pipeline.'
         }
     }
 }
