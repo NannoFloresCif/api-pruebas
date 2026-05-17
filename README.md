@@ -12,7 +12,9 @@ El código fue versionado en GitHub usando Trunk-Based Development simplificado,
 
 Posteriormente se configuró Jenkins en Docker para ejecutar un pipeline de integración continua definido como código mediante un `Jenkinsfile`. El pipeline realiza checkout del repositorio, prepara Maven Wrapper, verifica el entorno, compila el proyecto, ejecuta pruebas unitarias, pruebas de integración y genera evidencia.
 
+
 Finalmente se implementó un despliegue en ambiente de pruebas usando Docker y Docker Compose. La aplicación se empaquetó como imagen Docker versionada y se validó mediante los endpoints `/salud` y `/api/version`. También se incorporó una estrategia de rollback manual asistido, permitiendo volver a levantar una versión estable anterior de la aplicación.
+
 ---
 
 # Actividad 1: Proyecto Maven, GitHub y pruebas base
