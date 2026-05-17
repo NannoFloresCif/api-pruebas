@@ -17,6 +17,15 @@ Finalmente se implementó un despliegue en ambiente de pruebas usando Docker y D
 
 ---
 
+## Repositorio del proyecto
+
+El código fuente del proyecto se encuentra disponible en el siguiente repositorio público de GitHub:
+
+https://github.com/NannoFloresCif/api-pruebas
+
+
+---
+
 # Actividad 1: Proyecto Maven, GitHub y pruebas base
 
 ## Objetivo de la actividad
